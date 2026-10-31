@@ -1,0 +1,242 @@
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, Arial, sans-serif;
+  background: #f5f6fb;
+  color: #20243a;
+}
+
+.app-shell {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.app-header h2 {
+  margin: 8px 0;
+}
+
+.eyebrow {
+  color: #6658d9;
+  letter-spacing: 1.2px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.status-pill {
+  padding: 9px 15px;
+  border-radius: 24px;
+  background: #e9e6ff;
+  color: #5949cb;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  align-items: stretch;
+  gap: 22px;
+}
+
+.chat-card,
+.reply-card {
+  border-radius: 20px;
+  box-shadow: 0 12px 40px rgba(25, 30, 70, 0.06);
+}
+
+.chat-card .ant-card-body,
+.reply-card .ant-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  height: 100%;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.section-heading h4,
+.reply-card h4 {
+  margin: 0 0 8px;
+}
+
+.heading-icon {
+  font-size: 27px;
+  color: #6658d9;
+}
+
+.field-label {
+  font-weight: 600;
+  margin-bottom: -10px;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.controls .ant-select {
+  width: 100%;
+}
+
+.reply-card {
+  background: #fff;
+}
+
+.empty-reply {
+  min-height: 230px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  background: #f8f7ff;
+  border: 1px dashed #d8d1ff;
+  border-radius: 14px;
+}
+
+.empty-icon {
+  font-size: 38px;
+  color: #7667e8;
+}
+
+.prototype-note {
+  margin-top: auto;
+  padding-top: 18px;
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    padding: 24px 14px;
+  }
+
+  .app-header {
+    align-items: flex-start;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .controls {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rag-status {
+  padding: 16px;
+  margin-top: 8px;
+  border: 1px solid rgba(130, 110, 255, 0.25);
+  border-radius: 14px;
+  background: rgba(130, 110, 255, 0.06);
+}
+
+.rag-status .ant-tag {
+  margin-bottom: 6px;
+}
+
+.prototype-note {
+  margin-top: 24px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(150, 150, 150, 0.18);
+}
+
+.training-card {
+  margin-top: 24px;
+  border-radius: 20px;
+  box-shadow: 0 12px 40px rgba(25, 30, 70, 0.06);
+}
+
+.training-card .ant-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.upload-area {
+  min-height: 210px;
+  padding: 28px;
+  border: 2px dashed #d8d1ff;
+  border-radius: 16px;
+  background: #f8f7ff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.upload-icon {
+  font-size: 42px;
+  color: #7667e8;
+}
+
+.selected-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1px solid #e5e0ff;
+  border-radius: 10px;
+  max-width: 100%;
+}
+
+.selected-file .ant-typography {
+  overflow-wrap: anywhere;
+}
+
+.training-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.stat-box {
+  padding: 16px;
+  border-radius: 12px;
+  background: #f8f7ff;
+  border: 1px solid #e9e6ff;
+}
+
+.stat-box h3 {
+  margin: 8px 0 0;
+}
+
+@media (max-width: 600px) {
+  .training-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .upload-area {
+    padding: 20px 12px;
+  }
+}
+

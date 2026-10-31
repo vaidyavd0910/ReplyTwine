@@ -1,0 +1,26 @@
+
+{
+  "samples": [
+    {
+      "context": "A colleague asks for a project update",
+      "incoming_message": "Can you share the project update?",
+      "my_reply": "Hi, sure! I'll share it shortly.",
+      "tone": "professional",
+      "language": "English"
+    },
+    {
+      "context": "A friend asks about weekend plans",
+      "incoming_message": "Are we meeting this weekend?",
+      "my_reply": "Haan yaar, plan karte hain!",
+      "tone": "casual",
+      "language": "Hinglish"
+    },
+    {
+      "context": "Someone asks for help",
+      "incoming_message": "Could you help me with this?",
+      "my_reply": "Haan bro, bilkul! Batao kya help chahiye.",
+      "tone": "friendly",
+      "language": "Hinglish"
+    }
+  ]
+}
