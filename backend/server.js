@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import OpenAI from "openai";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
+import multer from "multer";
 
 dotenv.config();
 
@@ -13,6 +14,29 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors({ origin: "http://localhost:5173" }));
 app.use(express.json({ limit: "100kb" }));
+// Multiple WhatsApp screenshot upload configuration
+const upload = multer({
+  storage: multer.memoryStorage(),
+
+  limits: {
+    files: 10,
+    fileSize: 5 * 1024 * 1024, // 5 MB per image
+  },
+
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only JPG, PNG and WEBP images are allowed."));
+    }
+  },
+});
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -55,7 +79,15 @@ const chatSampleSchema = z.object({
 const sampleBatchSchema = z.object({
   samples: z.array(chatSampleSchema).min(1).max(100),
 });
+const extractedMessageSchema = z.object({
+  text: z.string(),
+  sender: z.enum(["me", "other", "unknown"]),
+  confidence: z.enum(["high", "medium", "low"]),
+});
 
+const extractionSchema = z.object({
+  messages: z.array(extractedMessageSchema),
+});
 function normalizeText(value) {
   return value
     .normalize("NFC")
@@ -347,6 +379,145 @@ app.post("/api/samples/search", async (req, res) => {
     });
   }
 });
+
+app.post(
+  "/api/samples/extract-images",
+  upload.array("screenshots", 10),
+  async (req, res) => {
+    try {
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(500).json({
+          success: false,
+          error: "OpenAI API key is not configured.",
+        });
+      }
+
+      const files = req.files || [];
+
+      if (files.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: "Please upload at least one screenshot.",
+        });
+      }
+
+      // Convert uploaded images into Base64 data URLs
+      const imageInputs = files.map((file) => ({
+        type: "input_image",
+        image_url: `data:${file.mimetype};base64,${file.buffer.toString("base64")}`,
+        detail: "high",
+      }));
+
+      // Ask Vision AI to extract WhatsApp messages
+      const response = await openai.responses.create({
+        model: process.env.OPENAI_VISION_MODEL || "gpt-4.1-mini",
+
+        input: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "input_text",
+                text: `
+You are a WhatsApp chat extraction assistant.
+
+Extract all visible conversation messages from the supplied screenshots.
+
+Rules:
+1. Preserve the original message text and conversation order.
+2. Identify messages from the screenshot owner as "me".
+3. Identify messages from the other participant as "other".
+4. If sender identity is unclear, use "unknown".
+5. Never guess missing or unreadable text.
+6. Do not include timestamps as messages.
+7. Do not invent any conversation.
+8. Assign confidence:
+   - high: sender and text are clearly readable.
+   - medium: some uncertainty exists.
+   - low: text or sender is difficult to identify.
+9. Return valid JSON only, using this structure:
+
+{
+  "messages": [
+    {
+      "text": "Hello",
+      "sender": "other",
+      "confidence": "high"
+    }
+  ]
+}
+                `,
+              },
+              ...imageInputs,
+            ],
+          },
+        ],
+      });
+
+      // Convert AI response into a JavaScript object
+      const extractedText = response.output_text;
+      const extractedJSON = JSON.parse(extractedText);
+
+      // Validate AI-generated data
+      const parsed = extractionSchema.safeParse(extractedJSON);
+
+      if (!parsed.success) {
+        throw new Error("AI returned an invalid message structure.");
+      }
+
+      const messages = parsed.data.messages;
+
+      // Pair incoming messages with the following reply
+      const samples = [];
+      const uncertainMessages = [];
+
+      for (let i = 0; i < messages.length; i++) {
+        const incoming = messages[i];
+        const reply = messages[i + 1];
+
+        if (incoming.confidence !== "high") {
+          uncertainMessages.push(incoming);
+        }
+
+        if (
+          incoming.sender === "other" &&
+          reply?.sender === "me" &&
+          incoming.confidence === "high" &&
+          reply.confidence === "high"
+        ) {
+          samples.push({
+            context: "Extracted from WhatsApp screenshots",
+            incoming_message: incoming.text,
+            my_reply: reply.text,
+            tone: "casual",
+            language: "Hinglish",
+          });
+
+          i++;
+        }
+      }
+
+      return res.json({
+        success: true,
+        message: "WhatsApp screenshots processed successfully.",
+        totalImages: files.length,
+        totalMessages: messages.length,
+        totalSamples: samples.length,
+        samples,
+        extractedMessages: messages,
+        uncertainMessages,
+      });
+
+    } catch (error) {
+      console.error("WhatsApp image extraction failed:", error.message);
+
+      return res.status(502).json({
+        success: false,
+        error: "Unable to extract WhatsApp messages. Please try again.",
+      });
+    }
+  }
+);
 
 
 app.listen(PORT, () => {

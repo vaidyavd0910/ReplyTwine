@@ -50,7 +50,10 @@ export default function App() {
   const [trainingLoading, setTrainingLoading] = useState(false);
   const [previewResult, setPreviewResult] = useState(null);
   const [trainingResult, setTrainingResult] = useState(null);
-
+// WhatsApp screenshot states
+const [screenshotFiles, setScreenshotFiles] = useState([]);
+const [extractingImages, setExtractingImages] = useState(false);
+const [extractionResult, setExtractionResult] = useState(null);
   async function generateReply() {
     if (!incoming.trim()) {
       notification.warning("Please enter an incoming message.");
@@ -135,6 +138,75 @@ export default function App() {
     return false;
   }
 
+  function handleScreenshotUpload(file) {
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      notification.error("Only JPG, PNG and WEBP images are allowed.");
+      return Upload.LIST_IGNORE;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      notification.error("Each image must be smaller than 5 MB.");
+      return Upload.LIST_IGNORE;
+    }
+
+    if (screenshotFiles.length >= 10) {
+      notification.warning("You can upload a maximum of 10 images.");
+      return Upload.LIST_IGNORE;
+    }
+
+    setScreenshotFiles((previous) => [...previous, file]);
+    setExtractionResult(null);
+
+    return false;
+  }
+async function extractScreenshots() {
+  if (screenshotFiles.length === 0) {
+    notification.warning("Please upload at least one screenshot.");
+    return;
+  }
+
+  const formData = new FormData();
+
+  screenshotFiles.forEach((file) => {
+    formData.append("screenshots", file);
+  });
+
+  try {
+    setExtractingImages(true);
+    setExtractionResult(null);
+
+    const response = await axios.post(
+      `${API_URL}/samples/extract-images`,
+      formData
+    );
+
+    if (response.data.success) {
+      setExtractionResult(response.data);
+
+      // Put extracted samples into the existing review workflow
+      setSamples(response.data.samples || []);
+if (response.data.samples?.length > 0) {
+  await previewSamples(response.data.samples);
+}
+      notification.success("WhatsApp screenshots extracted successfully!");
+    }
+  } catch (error) {
+    console.error("Screenshot extraction error:", error);
+
+    notification.error(
+      error.response?.data?.error ||
+      "Unable to extract messages. Please try again."
+    );
+  } finally {
+    setExtractingImages(false);
+  }
+}
   async function previewSamples(selectedSamples) {
     setPreviewLoading(true);
 
@@ -263,26 +335,56 @@ export default function App() {
             <label>
               <Text strong>Tone</Text>
               <Select
-                value={tone}
-                onChange={setTone}
-                options={[
-                  { value: "casual", label: "Casual" },
-                  { value: "professional", label: "Professional" },
-                  { value: "friendly", label: "Friendly" },
-                ]}
-              />
+  styles={{
+    root: { width: "100%", background: "#24211d",
+      border: "1px solid #49443a",
+      borderRadius: "10px",
+      boxShadow: "none",},
+    selector: {
+      background: "#24211d",
+      border: "1px solid #49443a",
+      borderRadius: "10px",
+      boxShadow: "none",
+    },
+    selection: {
+      color: "#f0e9dd",
+    },
+  }}
+  value={tone}
+  onChange={setTone}
+  options={[
+    { value: "casual", label: "Casual" },
+    { value: "professional", label: "Professional" },
+    { value: "friendly", label: "Friendly" },
+  ]}
+/>
             </label>
 
             <label>
               <Text strong>Language</Text>
-              <Select
-                value={language}
-                onChange={setLanguage}
-                options={[
-                  { value: "Hinglish", label: "Hinglish" },
-                  { value: "English", label: "English" },
-                ]}
-              />
+             <Select
+  styles={{
+    root: {  width: "100%", background: "#24211d",
+      border: "1px solid #49443a",
+      borderRadius: "10px",
+      boxShadow: "none", },
+    selector: {
+      background: "#24211d",
+      border: "1px solid #49443a",
+      borderRadius: "10px",
+      boxShadow: "none",
+    },
+    selection: {
+      color: "#f0e9dd",
+    },
+  }}
+  value={language}
+  onChange={setLanguage}
+  options={[
+    { value: "Hinglish", label: "Hinglish" },
+    { value: "English", label: "English" },
+  ]}
+/>
             </label>
           </div>
 
@@ -388,6 +490,76 @@ export default function App() {
             </Text>
           </div>
           <CloudUploadOutlined className="heading-icon" />
+        </div>
+
+        {/* WHATSAPP SCREENSHOT UPLOAD */}
+        <div className="screenshot-upload-section">
+          <Divider />
+
+          <Typography.Title level={4}>
+            <CloudUploadOutlined /> Import WhatsApp Chats
+          </Typography.Title>
+
+          <Typography.Paragraph type="secondary">
+            Upload up to 10 WhatsApp chat screenshots.
+            ReplyTwin will extract messages and create training samples.
+          </Typography.Paragraph>
+
+          <Upload
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            showUploadList={false}
+            beforeUpload={handleScreenshotUpload}
+          >
+            <Button icon={<CloudUploadOutlined />}>
+              Select WhatsApp Screenshots
+            </Button>
+          </Upload>
+
+          {screenshotFiles.length > 0 && (
+            <div className="screenshot-file-list">
+              {screenshotFiles.map((file, index) => (
+                <div className="screenshot-file-item" key={file.uid || index}>
+                  <Space>
+                    <FileTextOutlined />
+                    <Typography.Text>{file.name}</Typography.Text>
+                  </Space>
+
+                  <Button
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() =>
+                      setScreenshotFiles((previous) =>
+                        previous.filter((_, i) => i !== index)
+                      )
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          <Button
+            type="primary"
+            icon={<RobotOutlined />}
+            loading={extractingImages}
+            disabled={screenshotFiles.length === 0}
+            onClick={extractScreenshots}
+            style={{ marginTop: 16 }}
+          >
+            Extract Chat Messages
+          </Button>
+
+          {extractionResult && (
+            <Alert
+              style={{ marginTop: 16 }}
+              type="success"
+              showIcon
+              message="Screenshot extraction completed"
+              description={`Images: ${extractionResult.totalImages} | Messages: ${extractionResult.totalMessages} | Training samples: ${extractionResult.totalSamples}`}
+            />
+          )}
         </div>
 
         <div className="upload-area">
